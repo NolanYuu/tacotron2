@@ -1,11 +1,12 @@
-import tensorflow as tf
-from text import symbols
+from easydict import EasyDict as edict
+from ast import literal_eval
+from phkit.chinese.symbol import symbol_chinese_simple
 
 
 def create_hparams(hparams_string=None, verbose=False):
     """Create model hyperparameters. Parse nondefault from given string."""
 
-    hparams = tf.contrib.training.HParams(
+    hparams = edict(
         ################################
         # Experiment Parameters        #
         ################################
@@ -20,11 +21,15 @@ def create_hparams(hparams_string=None, verbose=False):
         cudnn_enabled=True,
         cudnn_benchmark=False,
         ignore_layers=['embedding.weight'],
+        train_set_ratio=0.98,
+
 
         ################################
         # Data Parameters             #
         ################################
         load_mel_from_disk=False,
+        dataset_path="/inspur/AISHELL-3/",
+        log_path="/inspur/tacotron2/log.txt",
         training_files='filelists/ljs_audio_text_train_filelist.txt',
         validation_files='filelists/ljs_audio_text_val_filelist.txt',
         text_cleaners=['english_cleaners'],
@@ -44,7 +49,7 @@ def create_hparams(hparams_string=None, verbose=False):
         ################################
         # Model Parameters             #
         ################################
-        n_symbols=len(symbols),
+        n_symbols=len(symbol_chinese_simple),
         symbols_embedding_dim=512,
 
         # Encoder parameters
@@ -85,11 +90,12 @@ def create_hparams(hparams_string=None, verbose=False):
         mask_padding=True  # set model's padded outputs to padded values
     )
 
-    if hparams_string:
-        tf.logging.info('Parsing command line hparams: %s', hparams_string)
-        hparams.parse(hparams_string)
-
-    if verbose:
-        tf.logging.info('Final parsed hparams: %s', hparams.values())
+    if hparams_string is not None:
+        try:
+            params.update(literal_eval(setting_str))
+        except:
+            utils.print_ERROR(
+                "hparams", "format of setting string is wrong, setting cancelled"
+            )
 
     return hparams

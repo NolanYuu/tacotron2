@@ -1,4 +1,5 @@
 import numpy as np
+import librosa
 from scipy.io.wavfile import read
 import torch
 
@@ -27,3 +28,33 @@ def to_gpu(x):
     if torch.cuda.is_available():
         x = x.cuda(non_blocking=True)
     return torch.autograd.Variable(x)
+
+
+def make_dir(dir_name):
+    if not os.path.exists(dir_name):
+        os.mkdir(dir_name)
+
+
+def load_wav(path, sr):
+    return librosa.load(path, sr=sr)
+
+
+def load_text(path):
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.readlines()
+    return text
+
+
+def print_ERROR(location, message):
+    print("\033[1;31m[ERROR]\033[0m\033[1;36m[{}]\033[0m: {}".format(
+        location, message))
+
+
+def print_WARNING(location, message):
+    print("\033[1;33m[WARNING]\033[0m\033[1;36m[{}]\033[0m: {}".format(
+        location, message))
+
+
+def print_INFO(location, message):
+    print("\033[1;34m[INFO]\033[0m\033[1;36m[{}]\033[0m: {}".format(
+        location, message))

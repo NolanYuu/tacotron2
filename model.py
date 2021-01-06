@@ -6,6 +6,8 @@ from torch.nn import functional as F
 from layers import ConvNorm, LinearNorm
 from utils import to_gpu, get_mask_from_lengths
 
+from encoder.model import SpeakerEncoder
+
 
 class LocationLayer(nn.Module):
     def __init__(self, attention_n_filters, attention_kernel_size,
@@ -470,6 +472,12 @@ class Tacotron2(nn.Module):
         self.decoder = Decoder(hparams)
         self.postnet = Postnet(hparams)
 
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        loss_device = torch.device("cpu")
+        self.speaker_encoder = SpeakerEncoder(device, loss_device)
+        for p in self.speaker_encoder.parameters():
+            p.requires_grad = False
+
     def parse_batch(self, batch):
         text_padded, input_lengths, mel_padded, gate_padded, \
             output_lengths = batch
@@ -496,13 +504,16 @@ class Tacotron2(nn.Module):
 
         return outputs
 
-    def forward(self, inputs):
+    def forward(self, inputs, refer_wav):
         text_inputs, text_lengths, mels, max_len, output_lengths = inputs
         text_lengths, output_lengths = text_lengths.data, output_lengths.data
 
         embedded_inputs = self.embedding(text_inputs).transpose(1, 2)
 
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
+        # FIXME: dimension does not fit
+        speaker_embedding = self.speaker_encoder(refer_wav)
+        encoder_outputs = torch.cat(encoder_outputs, speaker_embedding)
 
         mel_outputs, gate_outputs, alignments = self.decoder(
             encoder_outputs, mels, memory_lengths=text_lengths)
